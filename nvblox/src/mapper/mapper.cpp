@@ -359,9 +359,12 @@ void Mapper::integrateColor(const ColorImage& color_frame,
 void Mapper::decayTsdf() {
   // TODO(remos): In the future we could exclude the blocks not decayed, from
   // the blocks requiring an update.
-  const std::vector<Index3D> all_blocks =
-      layers_.get<TsdfLayer>().getAllBlockIndices();
-  blocks_to_update_tracker_.addBlocksToUpdate(all_blocks);
+  LOG(INFO) << "Decaying TSDF";
+
+  try {
+    const std::vector<Index3D> all_blocks =
+        layers_.get<TsdfLayer>().getAllBlockIndices();
+    blocks_to_update_tracker_.addBlocksToUpdate(all_blocks);
 
   // Decay - either all blocks or exclude a view
   std::vector<Index3D> deallocated_blocks;
@@ -382,18 +385,23 @@ void Mapper::decayTsdf() {
         layers_.getPtr<TsdfLayer>(), *cuda_stream_);
   }
 
-  // Clear the blocks that got deallocated in the tsdf layer also in the esdf,
-  // freespace and mesh layers.
-  clearBlocksInLayers(deallocated_blocks);
-  layers_.getPtr<TsdfLayer>()->updateGpuHash(*cuda_stream_);
+    // Clear the blocks that got deallocated in the tsdf layer also in the esdf,
+    // freespace and mesh layers.
+    clearBlocksInLayers(deallocated_blocks);
+    layers_.getPtr<TsdfLayer>()->updateGpuHash(*cuda_stream_);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Error decaying TSDF: " << e.what();
+  }
 }
 
 void Mapper::decayOccupancy() {
+  LOG(INFO) << "Decaying Occupancy";
   // TODO(remos): In the future we could exclude the blocks not decayed, from
   // the blocks requiring an update.
-  const std::vector<Index3D> all_blocks =
-      layers_.get<OccupancyLayer>().getAllBlockIndices();
-  blocks_to_update_tracker_.addBlocksToUpdate(all_blocks);
+  try {
+    const std::vector<Index3D> all_blocks =
+        layers_.get<OccupancyLayer>().getAllBlockIndices();
+    blocks_to_update_tracker_.addBlocksToUpdate(all_blocks);
 
   // Decay - either all blocks or exclude a view
   std::vector<Index3D> deallocated_blocks;
@@ -413,10 +421,13 @@ void Mapper::decayOccupancy() {
         layers_.getPtr<OccupancyLayer>(), *cuda_stream_);
   }
 
-  // Clear the blocks that got deallocated in the occupancy layer also in the
-  // esdf, freespace and mesh layers.
-  clearBlocksInLayers(deallocated_blocks);
-  layers_.getPtr<OccupancyLayer>()->updateGpuHash(*cuda_stream_);
+    // Clear the blocks that got deallocated in the occupancy layer also in the
+    // esdf, freespace and mesh layers.
+    clearBlocksInLayers(deallocated_blocks);
+    layers_.getPtr<OccupancyLayer>()->updateGpuHash(*cuda_stream_);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Error decaying Occupancy: " << e.what();
+  }
 }
 
 void Mapper::clearTsdfInsideShapes(const std::vector<BoundingShape>& shapes) {
